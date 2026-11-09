@@ -36,11 +36,29 @@
     }
 },
 {
-    "model": "sessions.session",
-    "pk": "95q7bo0dyexkfvikuxi19548vm13fesx",
+    "model": "auth.user",
+    "pk": 3,
     "fields": {
-        "session_data": ".eJxVjEEOwiAQRe_C2hBmSgPj0r1nIANDpWogKe3KeHdt0oVu_3vvv1TgbS1h63kJs6izQnX63SKnR647kDvXW9Op1XWZo94VfdCur03y83K4fweFe_nWg8vJTUa8TRSRwBgUACfWZI-AlqJPeQSMlpgBhAyyExondm5AFvX-AMzBN2I:1xQQgz:AYRZ787myCyU5CCv0tIzLJVRWPoOVJ6pEiiJ0KSzypM",
-        "expire_date": "2026-11-23T14:49:53.532Z"
+        "password": "pbkdf2_sha256$1500000$Oqj3qYWrgJQNcVZKPtG1LN$3dt5ISxi4V/QWlRUuvY5iUPDdKJ/qGvtW9gqSY4qkRw=",
+        "last_login": "2026-11-09T16:29:12.438Z",
+        "is_superuser": false,
+        "username": "Francis",
+        "first_name": "",
+        "last_name": "",
+        "email": "",
+        "is_staff": false,
+        "is_active": true,
+        "date_joined": "2026-11-09T16:29:11.809Z",
+        "groups": [],
+        "user_permissions": []
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "78faabfcq5qasxfxh5a5n3v922f1wqal",
+    "fields": {
+        "session_data": ".eJxVjDsOwjAQRO_iGlnEfyjpcwZrvbvGAWRLcVIh7k4ipYBuNO_NvEWEdSlx7TzHicRVaHH67RLgk-sO6AH13iS2usxTkrsiD9rl2Ihft8P9OyjQy7Z2RmenLF60TzYZYsLgKVBQDA6JIbCms8oDINgACTHnLRj2EPSQrPh8AQx-OVo:1xQSF6:sF3dNjranlCTgWFSgqpnCQPxBcBy3QE4JRcgf7xx2BM",
+        "expire_date": "2026-11-23T16:29:12.444Z"
     }
 },
 {
