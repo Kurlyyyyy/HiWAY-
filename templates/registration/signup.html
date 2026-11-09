@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto bg-[#EFEAE1] border border-[#E5E0D8] rounded-3xl p-8 shadow-sm">
+    <div class="text-center space-y-2 mb-6">
+        <h1 class="text-3xl font-extrabold text-slate-900">Create Public Account</h1>
+        <p class="text-xs text-slate-500">Report street hazards and track repair updates in Batangas City.</p>
+    </div>
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="space-y-1">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">{{ field.label }}</label>
+            <div class="bg-[#FAF8F5] border border-[#E5E0D8] rounded-xl px-4 py-2 text-[#2D3748]">
+                {{ field }}
+            </div>
+            {% if field.errors %}
+            <span class="text-xs text-rose-500">{{ field.errors.0 }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="w-full bg-[#EAB308] hover:bg-[#D97706] text-slate-950 font-extrabold py-3 rounded-xl transition shadow-sm mt-4">
+            Register Account
+        </button>
+    </form>
+
+    <div class="mt-6 text-center text-xs text-slate-500 border-t border-[#E5E0D8] pt-4">
+        Already have an account? <a href="{% url 'login' %}" class="text-[#D97706] font-bold hover:underline">Sign In</a>
+    </div>
+</div>
+{% endblock %}

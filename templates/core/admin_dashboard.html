@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="space-y-8">
+    <div class="bg-[#1C2536] text-white rounded-3xl p-8 flex justify-between items-center shadow-md">
+        <div>
+            <span class="text-xs font-mono text-amber-400 uppercase tracking-widest font-bold">ADMINISTRATOR DISPATCH ENGINE</span>
+            <h1 class="text-4xl font-extrabold mt-1">Municipal Control Center</h1>
+            <p class="text-slate-400 text-xs mt-1">Prioritize hazards dynamically and verify completed repairs.</p>
+        </div>
+    </div>
+
+    <!-- Quick Stat Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-[#EFEAE1] border border-[#E5E0D8] p-5 rounded-2xl">
+            <span class="text-xs font-bold text-slate-500 block">Open Reports</span>
+            <span class="text-3xl font-extrabold text-slate-900">{{ total_open }}</span>
+        </div>
+        <div class="bg-[#EFEAE1] border border-[#E5E0D8] p-5 rounded-2xl">
+            <span class="text-xs font-bold text-slate-500 block">Critical Hazards</span>
+            <span class="text-3xl font-extrabold text-rose-600">{{ critical_count }}</span>
+        </div>
+        <div class="bg-[#EFEAE1] border border-[#E5E0D8] p-5 rounded-2xl">
+            <span class="text-xs font-bold text-slate-500 block">In Repair</span>
+            <span class="text-3xl font-extrabold text-amber-600">{{ in_repair_count }}</span>
+        </div>
+        <div class="bg-[#EFEAE1] border border-[#E5E0D8] p-5 rounded-2xl">
+            <span class="text-xs font-bold text-slate-500 block">Resolved Today</span>
+            <span class="text-3xl font-extrabold text-emerald-600">{{ resolved_count }}</span>
+        </div>
+    </div>
+
+    <!-- Dispatch Control Queue Table with Category Filter and Sort Controls -->
+    <div class="bg-[#EFEAE1] border border-[#E5E0D8] rounded-3xl overflow-hidden shadow-sm">
+        <div class="p-6 border-b border-[#E5E0D8] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h3 class="font-bold text-slate-900 text-lg">Priority Queue (Max-Heap Sorted)</h3>
+                <p class="text-xs text-slate-500">Logged in as Administrator</p>
+            </div>
+
+            <!-- Filter by Category & Sorting Controls Form -->
+            <form method="GET" class="flex items-center space-x-3 w-full md:w-auto">
+                
+                <!-- Category Filter Dropdown -->
+                <select name="category" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none shadow-sm max-w-[200px]">
+                    <option value="All">All Categories (12)</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                            {{ cat }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <!-- Sort Toggle -->
+                <select name="sort" onchange="this.form.submit()" class="px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-700 focus:outline-none shadow-sm">
+                    <option value="priority" {% if current_sort == 'priority' %}selected{% endif %}>Sort: Highest Priority</option>
+                    <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Sort: Newest First</option>
+                    <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Sort: Oldest First</option>
+                </select>
+            </form>
+        </div>
+
+        <div class="divide-y divide-[#E5E0D8]">
+            {% for report in reports %}
+            <div class="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <!-- Left Side: Thumbnail and Main Info -->
+                <div class="flex items-center space-x-4">
+                    <!-- Photo Evidence Thumbnail Preview with Pop-up trigger -->
+                    {% if report.photo %}
+                        <button type="button" 
+                                data-img-url="{{ report.photo.url }}" 
+                                data-report-id="HW-{{ report.id|stringformat:'03d' }}"
+                                data-report-barangay="{{ report.barangay }}"
+                                data-report-title="{{ report.title }}"
+                                data-report-category="{{ report.category }}"
+                                data-report-severity="{{ report.get_severity_display|default:report.severity }}"
+                                data-report-status="{{ report.status }}"
+                                data-report-priority="{{ report.priority_score }}"
+                                data-report-desc="{{ report.description }}"
+                                data-report-date="{{ report.created_at|date:'M d, Y H:i' }}"
+                                data-lat="{{ report.latitude }}"
+                                data-lng="{{ report.longitude }}"
+                                onclick="openFullReportModal(this)" 
+                                class="block shrink-0 focus:outline-none">
+                            <img src="{{ report.photo.url }}" alt="Report Photo" class="h-16 w-16 object-cover rounded-xl border border-slate-300 hover:opacity-90 hover:scale-105 transition shadow-sm" title="Click to view full report">
+                        </button>
+                    {% else %}
+                        <button type="button" 
+                                data-img-url="" 
+                                data-report-id="HW-{{ report.id|stringformat:'03d' }}"
+                                data-report-barangay="{{ report.barangay }}"
+                                data-report-title="{{ report.title }}"
+                                data-report-category="{{ report.category }}"
+                                data-report-severity="{{ report.get_severity_display|default:report.severity }}"
+                                data-report-status="{{ report.status }}"
+                                data-report-priority="{{ report.priority_score }}"
+                                data-report-desc="{{ report.description }}"
+                                data-report-date="{{ report.created_at|date:'M d, Y H:i' }}"
+                                data-lat="{{ report.latitude }}"
+                                data-lng="{{ report.longitude }}"
+                                onclick="openFullReportModal(this)"
+                                class="h-16 w-16 bg-slate-200 rounded-xl border border-slate-300 flex items-center justify-center text-slate-400 text-[10px] font-mono text-center shrink-0 hover:bg-slate-300 transition">
+                            No Photo
+                        </button>
+                    {% endif %}
+
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-2 text-xs font-mono">
+                            <span class="font-bold text-slate-700">HW-{{ report.id|stringformat:"03d" }}</span>
+                            <span class="text-slate-400">&bull; Brgy. {{ report.barangay }}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase 
+                                {% if report.status == 'Resolved' %} bg-emerald-700 text-white
+                                {% elif report.status == 'In Progress' %} bg-blue-700 text-white
+                                {% elif report.status == 'Dispatched' %} bg-purple-700 text-white
+                                {% elif report.status == 'Verified' %} bg-amber-600 text-white
+                                {% else %} bg-slate-700 text-white {% endif %}">
+                                {{ report.status }}
+                            </span>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-900">{{ report.title }}</h4>
+                    </div>
+                </div>
+
+                
+                {% if request.user.is_staff or request.user.is_superuser %}
+                <div class="grid grid-cols-4 items-center gap-4 text-center shrink-0 w-[420px]">
+                    <!-- 1. Priority Score -->
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-[10px] uppercase text-slate-500 font-bold block">PRIORITY</span>
+                        <span class="text-lg font-mono font-bold text-amber-700">{{ report.priority_score }}</span>
+                    </div>
+                    
+                    <!-- 2. UNDO BUTTON -->
+                    <div class="flex justify-center">
+                        {% if report.prev_status %}
+                        <a href="{% url 'revert_report_status' report.id %}" 
+                        class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-sm whitespace-nowrap"
+                        title="Ibalik sa {{ report.prev_status }}">
+                        &larr; Undo
+                        </a>
+                        {% else %}
+                        <div class="h-[32px]"></div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 3. NEXT STATUS BUTTON -->
+                    <div class="flex justify-center">
+                        {% if report.next_status %}
+                        <a href="{% url 'advance_report_status' report.id %}" 
+                        class="px-4 py-2 bg-[#EAB308] hover:bg-[#D97706] text-slate-950 font-bold text-xs rounded-xl transition shadow-sm whitespace-nowrap">
+                        Mark {{ report.next_status }} &rarr;
+                        </a>
+                        {% else %}
+                        <span class="px-3 py-2 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl whitespace-nowrap">
+                            Finalized
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- 4. Remove Link -->
+                    <div class="flex justify-center">
+                        <a href="{% url 'delete_report' report.id %}" onclick="return confirm('Delete this report?')" class="text-xs font-bold text-rose-600 hover:underline">
+                            Remove
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+            {% empty %}
+            <div class="p-12 text-center text-slate-500 text-sm">
+                No active municipal reports found matching the selected filters.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Popup for Admin Status Update -->
+<div id="adminModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#EFEAE1] border border-[#E5E0D8] rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-[#E5E0D8] pb-3">
+            <h3 class="text-xl font-bold text-slate-900">Update Report Lifecycle</h3>
+            <button onclick="toggleModal('adminModal')" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+        </div>
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="report_id" id="modal_report_id">
+            {% for field in admin_form %}
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <div class="flex justify-end space-x-3 pt-4 border-t border-[#E5E0D8]">
+                <button type="button" onclick="toggleModal('adminModal')" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-[#EAB308] hover:bg-[#D97706] text-slate-950 text-xs font-bold rounded-xl shadow-sm">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Popup for Full Report Review with Pinned Map -->
+<div id="fullReportModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#EFEAE1] border border-[#E5E0D8] rounded-3xl max-w-4xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b border-[#E5E0D8] pb-3">
+            <div>
+                <span id="modalReportId" class="text-xs font-mono font-bold text-amber-700 uppercase">HW-000</span>
+                <h3 id="modalReportTitle" class="text-xl font-extrabold text-slate-900">Report Details</h3>
+            </div>
+            <button onclick="toggleModal('fullReportModal')" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <!-- Left Column: Photo Evidence -->
+            <div class="space-y-2">
+                <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Photo Evidence</span>
+                <div id="modalPhotoSection" class="bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center min-h-[220px] max-h-[260px]">
+                    <img id="modalReportImage" src="" alt="Report Photo Evidence" class="w-full h-full object-contain">
+                    <p id="modalNoPhotoText" class="text-xs text-slate-400 hidden p-6 text-center">No photo evidence attached to this report.</p>
+                </div>
+            </div>
+
+            <!-- Right Column: Report Metadata -->
+            <div class="space-y-2">
+                <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Report Information</span>
+                <div class="bg-[#E8E2D7] p-4 rounded-2xl border border-[#E5E0D8] space-y-2.5 text-xs">
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-500 uppercase">Category:</span>
+                        <span id="modalReportCategory" class="font-bold text-slate-900">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-500 uppercase">Barangay:</span>
+                        <span id="modalReportBarangay" class="font-bold text-slate-900">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-500 uppercase">Status:</span>
+                        <span id="modalReportStatus" class="font-bold px-2 py-0.5 rounded bg-slate-900 text-white uppercase text-[10px]">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-500 uppercase">Severity Level:</span>
+                        <span id="modalReportSeverity" class="font-bold text-amber-700">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-500 uppercase">Priority Score:</span>
+                        <span id="modalReportPriority" class="font-bold text-amber-700 font-mono text-sm">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-bold text-slate-500 uppercase">Date Submitted:</span>
+                        <span id="modalReportDate" class="font-medium text-slate-700">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapped Location Inside Modal -->
+        <div class="space-y-2 pt-2">
+            <span class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Pinned Location</span>
+            <div id="modalMapContainer" style="width: 100%; height: 220px;" class="rounded-2xl border border-[#E5E0D8] z-10 overflow-hidden"></div>
+        </div>
+
+        <!-- Full Width Description Section -->
+        <div class="space-y-1 pt-1">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Citizen Description / Remarks</label>
+            <div id="modalReportDesc" class="p-3 bg-[#E8E2D7] rounded-xl border border-[#E5E0D8] text-xs text-slate-800 leading-relaxed min-h-[60px]">
+                --
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-3 border-t border-[#E5E0D8]">
+            <button type="button" onclick="toggleModal('fullReportModal')" class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-sm">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let modalMap = null;
+    let modalMarker = null;
+
+    function openAdminModal(reportId) {
+        document.getElementById('modal_report_id').value = reportId;
+        toggleModal('adminModal');
+    }
+
+    function openFullReportModal(btn) {
+        const imgUrl = btn.getAttribute('data-img-url');
+        const reportId = btn.getAttribute('data-report-id');
+        const barangay = btn.getAttribute('data-report-barangay');
+        const title = btn.getAttribute('data-report-title');
+        const category = btn.getAttribute('data-report-category');
+        const severity = btn.getAttribute('data-report-severity');
+        const status = btn.getAttribute('data-report-status');
+        const priority = btn.getAttribute('data-report-priority');
+        const desc = btn.getAttribute('data-report-desc');
+        const date = btn.getAttribute('data-report-date');
+        
+        const lat = parseFloat(btn.getAttribute('data-lat')) || 13.7565;
+        const lng = parseFloat(btn.getAttribute('data-lng')) || 121.0583;
+
+        document.getElementById('modalReportId').textContent = reportId;
+        document.getElementById('modalReportTitle').textContent = title;
+        document.getElementById('modalReportCategory').textContent = category;
+        document.getElementById('modalReportBarangay').textContent = `Brgy. ${barangay}`;
+        document.getElementById('modalReportStatus').textContent = status;
+        document.getElementById('modalReportSeverity').textContent = severity;
+        document.getElementById('modalReportPriority').textContent = priority;
+        document.getElementById('modalReportDate').textContent = date;
+        document.getElementById('modalReportDesc').textContent = desc;
+
+        const imgEl = document.getElementById('modalReportImage');
+        const noPhotoEl = document.getElementById('modalNoPhotoText');
+        if (imgUrl && imgUrl.trim() !== '') {
+            imgEl.src = imgUrl;
+            imgEl.classList.remove('hidden');
+            noPhotoEl.classList.add('hidden');
+        } else {
+            imgEl.src = '';
+            imgEl.classList.add('hidden');
+            noPhotoEl.classList.remove('hidden');
+        }
+
+        toggleModal('fullReportModal');
+
+        setTimeout(() => {
+            if (!modalMap) {
+                modalMap = L.map('modalMapContainer', {
+                    zoomControl: true,
+                    attributionControl: false
+                }).setView([lat, lng], 16);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(modalMap);
+                
+                modalMarker = L.marker([lat, lng]).addTo(modalMap);
+            } else {
+                modalMap.setView([lat, lng], 16);
+                modalMarker.setLatLng([lat, lng]);
+                modalMap.invalidateSize();
+            }
+            modalMarker.bindPopup(`<b>${title}</b><br>Brgy. ${barangay}`).openPopup();
+        }, 200);
+    }
+</script>
+{% endblock %}

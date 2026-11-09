@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Hero Banner -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 rounded-3xl overflow-hidden shadow-sm border border-[#E5E0D8]">
+        <div class="bg-[#1C2536] p-10 text-white flex flex-col justify-between">
+            <div class="space-y-4">
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-emerald-400">&bull; Batangas City &bull; Public Portal</span>
+                <h1 class="text-5xl font-extrabold tracking-tight leading-none">See it.<br><span class="text-[#F59E0B]">Report it.</span> Follow it.</h1>
+                <p class="text-slate-300 text-sm max-w-md">Every report receives a public audit trail from citizen photo to verified municipal repair.</p>
+            </div>
+            <div class="pt-6">
+                <button onclick="toggleModal('reportModal')" class="bg-[#EAB308] hover:bg-[#D97706] text-slate-950 font-bold px-6 py-3 rounded-xl transition shadow-md">
+                    + Report an Issue
+                </button>
+            </div>
+        </div>
+        
+        <!-- Right Panel -->
+        <div class="bg-[#D9CDB8] p-8 flex items-center justify-center relative min-h-[250px]">
+            <img src="{% static 'images/emblem.png' %}" alt="HiWAY Emblem" class="max-h-72 w-auto mix-blend-multiply object-contain">
+        </div>
+    </div>
+
+    <!-- Active Reports Header -->
+    <div class="flex justify-between items-end border-b border-[#E5E0D8] pb-4">
+        <div>
+            <span class="text-xs uppercase font-mono tracking-widest text-slate-500">PUBLIC MAINTENANCE QUEUE</span>
+            <h2 class="text-3xl font-extrabold text-slate-900">Active Reports <span class="text-sm font-bold bg-[#E5E0D8] px-2 py-0.5 rounded-full">{{ count }}</span></h2>
+        </div>
+    </div>
+
+    <!-- Active Reports Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for report in reports %}
+        <div class="bg-[#EFEAE1] border border-[#E5E0D8] rounded-2xl overflow-hidden flex flex-col justify-between hover:border-[#D97706] transition shadow-sm">
+            
+            <!-- Photo Evidence Thumbnail Preview Header -->
+            {% if report.photo %}
+            <div class="w-full h-48 bg-slate-950 overflow-hidden border-b border-[#E5E0D8]">
+                <img src="{{ report.photo.url }}" alt="Report Evidence" class="w-full h-full object-cover hover:scale-105 transition duration-300">
+            </div>
+            {% endif %}
+
+            <div class="p-6 space-y-3">
+                <div class="flex justify-between text-xs font-mono text-slate-500">
+                    <span>HW-{{ report.id|stringformat:"03d" }}</span>
+                    <span>{{ report.created_at|timesince }} ago</span>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 hover:text-[#D97706]">
+                    <a href="{% url 'report_detail' report.id %}">{{ report.title }}</a>
+                </h3>
+                <p class="text-xs text-slate-600 line-clamp-2">{{ report.description }}</p>
+                <div class="text-xs font-semibold text-slate-500">📍 Brgy. {{ report.barangay }}</div>
+            </div>
+            <div class="px-6 py-4 bg-[#E8E2D7] border-t border-[#E5E0D8] flex items-center justify-between text-xs font-bold">
+                <span class="px-2.5 py-1 rounded-md text-white font-mono uppercase bg-slate-900">{{ report.category }}</span>
+                <a href="{% url 'support_report' report.id %}" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1 rounded-xl transition">
+                    ↑ {{ report.support_votes }} Support
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-16 text-center text-slate-500 bg-[#EFEAE1] rounded-2xl border border-[#E5E0D8]">
+            No open infrastructure reports found.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Popup for Submitting Report -->
+<div id="reportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-[#EFEAE1] border border-[#E5E0D8] rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b border-[#E5E0D8] pb-3">
+            <h3 class="text-xl font-bold text-slate-900">Report a Hazard</h3>
+            <button onclick="toggleModal('reportModal')" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            
+            <input type="hidden" name="latitude" id="id_latitude" value="13.7565">
+            <input type="hidden" name="longitude" id="id_longitude" value="121.0583">
+
+            <!-- Functional Map Picker Container -->
+            <div class="space-y-1">
+                <div class="flex justify-between items-center">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Pinpoint Exact Location on Map</label>
+                    <span class="text-[11px] text-amber-700 font-medium italic">💡 You can drag the pin for the exact location</span>
+                </div>
+                <div id="pickerMap" style="width: 100%; height: 260px;" class="rounded-xl border border-[#E5E0D8] z-10"></div>
+                <div class="pt-2">
+                    <button type="button" onclick="getCurrentLocation()" class="w-full bg-[#1C2536] hover:bg-[#2D3748] text-white text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm">
+                        <span>📍 Use My GPS Location</span>
+                    </button>
+                    <p id="geo-status" class="text-[11px] text-slate-500 mt-1 text-center font-medium">Click on the map to drop a pin or use GPS.</p>
+                </div>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Category (Acts as Title)</label>
+                    {{ form.category }}
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Severity</label>
+                    {{ form.severity }}
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Barangay</label>
+                {{ form.barangay }}
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Description</label>
+                {{ form.description }}
+            </div>
+
+            <!-- Photo Field with Preview -->
+            <div class="space-y-1">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Photo Evidence</label>
+                {{ form.photo }}
+                
+                <div id="imagePreviewContainer" class="hidden mt-2 p-3 bg-[#E8E2D7] rounded-xl border border-[#E5E0D8] flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <img id="imagePreview" src="" alt="Selected Preview" class="h-12 w-12 object-cover rounded-lg border border-slate-300">
+                        <div>
+                            <span id="imageFileName" class="text-xs font-bold text-slate-800 block truncate max-w-[200px]"></span>
+                            <span class="text-[10px] text-slate-500">Image attached</span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeSelectedImage()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-sm">
+                        ✕ Remove Photo
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4 border-t border-[#E5E0D8]">
+                <button type="button" onclick="toggleModal('reportModal')" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-[#EAB308] hover:bg-[#D97706] text-slate-950 text-xs font-bold rounded-xl shadow-sm">Submit Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let pickerMap = null;
+    let pickerMarker = null;
+    const defaultLat = 13.7565;
+    const defaultLng = 121.0583;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById('pickerMap');
+        if (!container) return;
+
+        pickerMap = L.map('pickerMap', {
+            zoomControl: true,
+            attributionControl: false,
+            fadeAnimation: true,
+            zoomAnimation: true
+        }).setView([defaultLat, defaultLng], 15);
+
+        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(pickerMap);
+
+        pickerMarker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(pickerMap);
+
+        function updateCoordinates(lat, lng) {
+            const latInput = document.getElementById('id_latitude');
+            const lngInput = document.getElementById('id_longitude');
+            if (latInput) latInput.value = parseFloat(lat).toFixed(6);
+            if (lngInput) lngInput.value = parseFloat(lng).toFixed(6);
+            autoDetectBarangay(lat, lng);
+        }
+
+        pickerMap.on('click', function(e) {
+            pickerMarker.setLatLng(e.latlng);
+            updateCoordinates(e.latlng.lat, e.latlng.lng);
+        });
+
+        pickerMarker.on('dragend', function(e) {
+            const coord = e.target.getLatLng();
+            updateCoordinates(coord.lat, coord.lng);
+        });
+
+        const resizeObserver = new ResizeObserver(() => {
+            if (pickerMap) {
+                pickerMap.invalidateSize({ pan: false });
+            }
+        });
+        resizeObserver.observe(container);
+
+        // Real-Time Auto-Tagging
+        const descInput = document.querySelector('textarea[name="description"]');
+        const categorySelect = document.querySelector('select[name="category"]');
+        const severitySelect = document.querySelector('select[name="severity"]');
+
+        function autoDetectFields() {
+            const text = (descInput ? descInput.value : '').toLowerCase();
+            if (!categorySelect) return;
+
+            function has(keywords) {
+                return keywords.some(kw => text.includes(kw));
+            }
+
+            const kw_flooding = ['flood', 'baha', 'overflow', 'submerged', 'tubig', 'lubog', 'umaapaw', 'maulan', 'apaw', 'malunod', 'rumaragasang', 'lampas', 'ilog', 'ulan', 'krisis', 'lason', 'kailaliman'];
+            const kw_road = ['pothole', 'road', 'bako', 'pit', 'asphalt', 'crack', 'lubak', 'kalsada', 'tulay', 'bitak', 'hukay', 'butas', 'pagsalubak', 'daan', 'palay', 'masubsob', 'nahulog', 'gumuho', 'aksidente', 'sasakyan', 'motor'];
+            const kw_drainage = ['drainage', 'canal', 'clog', 'bara', 'sewer', 'kanal', 'barado', 'imburnal', 'baho', 'lamok', 'dengue', 'maruming', 'estero', 'amoy', 'bacteria', 'sakit'];
+            const kw_lights = ['light', 'post', 'bundi', 'dilim', 'ilaw', 'poste', 'pundido', 'madilim', 'patay', 'yumaong', 'kalyeng', 'takot', 'gabi', 'magnanakaw', 'banta', 'panganib', 'sirang', 'bombilya', 'kuryente', 'pasilidad'];
+            const kw_garbage = ['garbage', 'trash', 'tapon', 'kalat', 'dump', 'basura', 'tambak', 'buidok', 'ipis', 'insekto', 'nakaimbak', 'kanto', 'amoy', 'mabaho', 'langaw', 'koleksyon', 'plastic', 'latak', 'pabaya'];
+            const kw_landslide = ['landslide', 'erosion', 'guho', 'lupa', 'collapse', 'pagguho', 'bundok', 'liblib', 'panganib', 'bato', 'putik', 'delikado', 'pagbagsak', 'sapa', 'gilid', 'bunduking', 'trahedya', 'sakuna', 'bitak'];
+            const kw_tree = ['tree', 'puno', 'fallen', 'branch', 'dahon', 'sanga', 'nabuwal', 'natumba', 'sampayan', 'acacia', 'hangin', 'harang', 'kawad', 'ugat', 'balagbag', 'sagabal', 'putol', 'daanan'];
+            const kw_construction = ['construction', 'unfinished', 'abandoned', 'projects', 'karatula', 'signboard', 'proyekto', 'center', 'contractor', 'tiwangwang', 'matagal', 'taon', 'buwan', 'tigil', 'pondo', 'korapsyon', 'atraso', 'pangako', 'hilaw', 'gusali'];
+            const kw_pavement = ['pavement', 'marking', 'linya', 'faded', 'bura', 'pedestrian', 'pudpod', 'tawiran', 'tawid', 'kulay', 'putol', 'aspalto', 'tanda', 'guhit', 'blangko', 'bulag', 'dilaw'];
+            const kw_traffic = ['traffic', 'signal', 'pulong', 'pula', 'dilaw', 'green', 'stuck', 'timer', 'batman', 'andar', 'patay', 'sira', 'bungo', 'salubong', 'kawalan', 'intersection', 'hinto', 'sabay', 'sistema'];
+            const kw_electrical = ['electrical', 'grid', 'power', 'brownout', 'kuryente', 'transformer', 'fluctuation', 'plaza', 'hide', 'seek', 'spark', 'sabog', 'kawad', 'saksak', 'voltage', 'disgrasya'];
+            const kw_infrastructure = ['broken', 'neglected', 'infrastructure', 'sira', 'pundasyon', 'shed', 'lumot', 'wasak', 'luma', 'tagas', 'bulok', 'kahoy', 'bakal', 'bubong', 'sahig', 'dingding', 'abandonado', 'pasilidad'];
+
+            if (has(kw_flooding)) {
+                categorySelect.value = 'Excessive Flooding';
+                if (severitySelect) severitySelect.value = has(['malunod', 'rumaragasang', 'lampas']) ? '5' : '4';
+            } else if (has(kw_road)) {
+                categorySelect.value = 'Road Damage';
+                if (severitySelect) severitySelect.value = has(['masubsob', 'nahulog', 'gumuho', 'aksidente']) ? '4' : '3';
+            } else if (has(kw_drainage)) {
+                categorySelect.value = 'Clogged Drainage';
+                if (severitySelect) severitySelect.value = '3';
+            } else if (has(kw_lights)) {
+                categorySelect.value = 'Defective Street Lights';
+                if (severitySelect) severitySelect.value = '3';
+            } else if (has(kw_garbage)) {
+                categorySelect.value = 'Improper Garbage Dump Sites';
+                if (severitySelect) severitySelect.value = '3';
+            } else if (has(kw_landslide)) {
+                categorySelect.value = 'Landslide';
+                if (severitySelect) severitySelect.value = '5';
+            } else if (has(kw_tree)) {
+                categorySelect.value = 'Fallen Tree Obstruction';
+                if (severitySelect) severitySelect.value = '4';
+            } else if (has(kw_construction)) {
+                categorySelect.value = 'Long-standing Unfinished Construction';
+                if (severitySelect) severitySelect.value = '2';
+            } else if (has(kw_pavement)) {
+                categorySelect.value = 'Faded Pavement Markings';
+                if (severitySelect) severitySelect.value = '2';
+            } else if (has(kw_traffic)) {
+                categorySelect.value = 'Defective Traffic Lights';
+                if (severitySelect) severitySelect.value = '4';
+            } else if (has(kw_electrical)) {
+                categorySelect.value = 'Electrical Grid Unreliability';
+                if (severitySelect) severitySelect.value = '3';
+            } else {
+                categorySelect.value = 'Neglected / Broken Infrastructure';
+                if (severitySelect) severitySelect.value = '3';
+            }
+        }
+
+        if (descInput) descInput.addEventListener('input', autoDetectFields);
+
+        // Image preview logic
+        const imageInput = document.getElementById('id_image');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewImg = document.getElementById('imagePreview');
+        const fileNameSpan = document.getElementById('imageFileName');
+
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        if (previewImg) previewImg.src = event.target.result;
+                        if (fileNameSpan) fileNameSpan.textContent = file.name;
+                        if (previewContainer) previewContainer.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    removeSelectedImage();
+                }
+            });
+        }
+    });
+
+    function autoDetectBarangay(lat, lng) {
+        const statusText = document.getElementById('geo-status');
+        const barangaySelect = document.querySelector('select[name="barangay"]');
+        if (!statusText || !barangaySelect) return;
+        
+        statusText.innerText = 'Detecting Barangay...';
+        statusText.className = 'text-[11px] text-amber-600 mt-1 text-center font-medium';
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+            headers: { 'Accept-Language': 'en' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.address) {
+                const addr = data.address;
+                const detectedSub = (addr.suburb || '').toLowerCase();
+                const detectedNeighbourhood = (addr.neighbourhood || '').toLowerCase();
+                const detectedVillage = (addr.village || '').toLowerCase();
+                const detectedQuarter = (addr.quarter || '').toLowerCase();
+
+                let matched = false;
+                let matchedBarangayName = '';
+
+                for (let option of barangaySelect.options) {
+                    const optText = option.text.toLowerCase();
+                    const cleanOpt = optText.replace(', batangas city', '').trim();
+
+                    if (
+                        (detectedSub && (detectedSub.includes(cleanOpt) || cleanOpt.includes(detectedSub))) ||
+                        (detectedNeighbourhood && (detectedNeighbourhood.includes(cleanOpt) || cleanOpt.includes(detectedNeighbourhood))) ||
+                        (detectedVillage && (detectedVillage.includes(cleanOpt) || cleanOpt.includes(detectedVillage))) ||
+                        (detectedQuarter && (detectedQuarter.includes(cleanOpt) || cleanOpt.includes(detectedQuarter)))
+                    ) {
+                        barangaySelect.value = option.value;
+                        matchedBarangayName = option.text;
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (matched) {
+                    statusText.innerText = `✓ Detected & Selected Barangay: ${matchedBarangayName}`;
+                    statusText.className = 'text-[11px] text-emerald-600 mt-1 text-center font-medium';
+                } else {
+                    statusText.innerText = '⚠️ Not in Batangas City';
+                    statusText.className = 'text-[11px] text-rose-600 mt-1 text-center font-bold';
+                }
+            } else {
+                statusText.innerText = '⚠️ Not in Batangas City';
+                statusText.className = 'text-[11px] text-rose-600 mt-1 text-center font-bold';
+            }
+        })
+        .catch(() => {
+            statusText.innerText = '⚠️ Unable to verify barangay location.';
+            statusText.className = 'text-[11px] text-rose-600 mt-1 text-center font-medium';
+        });
+    }
+
+    window.toggleModal = function(modalID) {
+        const modal = document.getElementById(modalID);
+        if (!modal) return;
+
+        if (modal.classList.contains('hidden')) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (modalID === 'reportModal' && pickerMap) {
+                setTimeout(() => {
+                    pickerMap.invalidateSize();
+                }, 100);
+            }
+        } else {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+    };
+
+    function getCurrentLocation() {
+        const statusText = document.getElementById('geo-status');
+        if (!navigator.geolocation) {
+            statusText.innerText = 'Geolocation is not supported by your browser.';
+            statusText.className = 'text-[11px] text-rose-600 mt-1 text-center font-medium';
+            return;
+        }
+
+        statusText.innerText = 'Fetching GPS location...';
+        statusText.className = 'text-[11px] text-amber-600 mt-1 text-center font-medium';
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                if (pickerMap && pickerMarker) {
+                    pickerMap.setView([lat, lng], 16);
+                    pickerMarker.setLatLng([lat, lng]);
+                    pickerMap.invalidateSize();
+                }
+                
+                const latInput = document.getElementById('id_latitude');
+                const lngInput = document.getElementById('id_longitude');
+                if (latInput) latInput.value = lat.toFixed(6);
+                if (lngInput) lngInput.value = lng.toFixed(6);
+                
+                autoDetectBarangay(lat, lng);
+            }, 
+            (err) => {
+                let msg = 'Unable to fetch GPS location.';
+                if (err.code === 1) msg = 'Location access denied in browser settings.';
+                statusText.innerText = msg;
+                statusText.className = 'text-[11px] text-rose-600 mt-1 text-center font-medium';
+            }, 
+            { enableHighAccuracy: false, timeout: 6000, maximumAge: 10000 }
+        );
+    }
+
+    function removeSelectedImage() {
+        const imageInput = document.getElementById('id_image');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const previewImg = document.getElementById('imagePreview');
+        const fileNameSpan = document.getElementById('imageFileName');
+
+        if (imageInput) imageInput.value = "";
+        if (previewContainer) previewContainer.classList.add('hidden');
+        if (previewImg) previewImg.src = "";
+        if (fileNameSpan) fileNameSpan.textContent = "";
+    }
+</script>
+{% endblock %}

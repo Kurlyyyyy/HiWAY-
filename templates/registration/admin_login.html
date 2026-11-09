@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-md mx-auto bg-[#1C2536] border border-[#2D3748] rounded-3xl p-8 shadow-md text-white">
+    <div class="text-center space-y-2 mb-6">
+        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest">Municipal Operations Control</span>
+        <h1 class="text-2xl font-extrabold text-white">Staff Sign In</h1>
+    </div>
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="p-3 bg-rose-900/50 border border-rose-700 text-rose-200 text-xs rounded-xl">
+            {{ form.non_field_errors.0 }}
+        </div>
+        {% endif %}
+        <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Administrator Username</label>
+            <input type="text" name="username" class="w-full bg-[#0A0F1D] border border-[#334155] text-white rounded-xl px-4 py-2.5 outline-none focus:border-amber-400" required>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1">Passcode</label>
+            <input type="password" name="password" class="w-full bg-[#0A0F1D] border border-[#334155] text-white rounded-xl px-4 py-2.5 outline-none focus:border-amber-400" required>
+        </div>
+        <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-3 rounded-xl transition shadow-sm">
+            Authenticate & Open Workspace
+        </button>
+    </form>
+
+    <div class="mt-6 text-center text-xs text-slate-400 border-t border-[#2D3748] pt-4">
+        <a href="{% url 'role_select' %}" class="hover:underline">&larr; Return to Role Selection</a>
+    </div>
+</div>
+{% endblock %}

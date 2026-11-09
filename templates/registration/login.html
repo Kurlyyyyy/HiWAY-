@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<script>
+    window.location.href = "{% url 'role_select' %}";
+</script>
+<div class="text-center py-12 text-slate-600">
+    <p>Redirecting to role selection...</p>
+    <a href="{% url 'role_select' %}" class="text-[#D97706] font-bold underline">Click here if you are not redirected automatically.</a>
+</div>
+{% endblock %}

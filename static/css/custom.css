@@ -1,0 +1,19 @@
+/* HiWAY! Custom Theme Styles */
+body {
+    background-color: #F7F4EE;
+    color: #1E293B;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #F7F4EE;
+}
+::-webkit-scrollbar-thumb {
+    background: #D9CDB8;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #C4B59F;
+}

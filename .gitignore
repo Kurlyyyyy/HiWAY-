@@ -1,0 +1,15 @@
+# Python / Virtual Environment
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+
+# Django local database
+db.sqlite3
+
+# Media files (uploaded photos)
+media/
+
+# VS Code settings
+.vscode/
