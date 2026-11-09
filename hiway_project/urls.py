@@ -5,10 +5,11 @@ from django.conf.urls.static import static
 from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Redirect legacy/default Django login attempts to the Role Selection portal
-    path('accounts/login/', RedirectView.as_view(pattern_name='role_select', permanent=False)),
+    # Idinagdag ang name='login' dito para makilala ito ng Django url reverse
+    path('accounts/login/', RedirectView.as_view(pattern_name='role_select', permanent=False), name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('', include('core.urls')),
 ]
