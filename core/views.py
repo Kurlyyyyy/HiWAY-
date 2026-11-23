@@ -67,9 +67,18 @@ def dashboard_view(request):
 def public_dashboard_view(request):
     if request.user.is_staff or request.user.is_superuser:
         return redirect('admin_dashboard')
-        
-    reports = InfrastructureReport.objects.exclude(status='Resolved').order_by('created_at')
-    
+
+    # Active reports lamang (hindi Resolved)[cite: 8]
+    reports = InfrastructureReport.objects.exclude(status='Resolved')
+
+    # Filter by category button kung may napili
+    selected_category = request.GET.get('category', 'All')
+    if selected_category and selected_category != 'All':
+        reports = reports.filter(category=selected_category)
+
+    # Panatilihin ang queue order ayon sa ticket number (id)[cite: 8]
+    reports = reports.order_by('id')
+
     if request.method == 'POST':
         form = ReportForm(request.POST, request.FILES)
         if form.is_valid():
@@ -91,6 +100,8 @@ def public_dashboard_view(request):
         'reports': reports,
         'count': reports.count(),
         'form': form,
+        'categories': [choice[0] for choice in InfrastructureReport.CATEGORY_CHOICES],
+        'selected_category': selected_category,
     }
     return render(request, 'core/public_dashboard.html', context)
 
@@ -234,7 +245,6 @@ def archive_undo_last_view(request):
 @login_required
 def archive_redo_last_view(request):
     if request.user.is_staff or request.user.is_superuser:
-        
         last_in_progress = InfrastructureReport.objects.filter(status='In Progress').order_by('-updated_at').first()
         if last_in_progress:
             last_in_progress.status = 'Resolved'
@@ -254,12 +264,4 @@ def revert_report_status_view(request, pk):
         except ValueError:
             report.status = 'Reported'
             report.save()
-    return redirect('admin_dashboard')
-
-@login_required
-def delete_report_view(request, pk):
-    """ View para sa pag-delete ng ulat mula sa admin dashboard """
-    if request.user.is_staff or request.user.is_superuser:
-        report = get_object_or_404(InfrastructureReport, pk=pk)
-        report.delete()
     return redirect('admin_dashboard')

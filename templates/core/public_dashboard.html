@@ -32,6 +32,24 @@
         </div>
     </div>
 
+    <div class="flex flex-wrap gap-2 mb-4">
+    <a
+        href="?category=All"
+        class="px-3 py-1.5 rounded-full text-xs font-semibold {% if selected_category == 'All' or not selected_category %}bg-slate-900 text-white{% else %}bg-amber-100 text-slate-800{% endif %}"
+    >
+        All
+    </a>
+
+    {% for cat in categories %}
+        <a
+        href="?category={{ cat|urlencode }}"
+        class="px-3 py-1.5 rounded-full text-xs font-semibold {% if selected_category == cat %}bg-slate-900 text-white{% else %}bg-amber-100 text-slate-800{% endif %}"
+        >
+        {{ cat }}
+        </a>
+    {% endfor %}
+    </div>
+
     <!-- Active Reports Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for report in reports %}
